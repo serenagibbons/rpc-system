@@ -19,21 +19,25 @@
 
 #include "arithmetic.idl"
 
-
+#include <cstdio>
 
 int add(int x, int y) {
+  printf("add() invoked\n");
   return x+y;
 }
 
 int subtract(int x, int y) {
+  printf("subtract() invoked\n");
   return x-y;
 }
 
 int multiply(int x, int y) {
+  printf("multiply() invoked\n");
   return x*y;
 }
 
 int divide(int x, int y) {
+  printf("divide() invoked\n");
   return x/y;
 }
 

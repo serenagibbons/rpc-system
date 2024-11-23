@@ -22,7 +22,7 @@
 //        NOTE: The only thing that makes this different from 
 //        an ordinary local application is the call to
 //        rpcproxyinitialize. If you commented that out, you could
-//        link this with the local version of simplefunction.o
+//        link this with the local version of arithmetic.o
 //        (which has the remotable function implementations)			      
 //
 //        COMMAND LINE
@@ -85,7 +85,7 @@ main(int argc, char *argv[]) {
      //
      //  Set up debug message logging
      //
-     setUpDebugLogging("simplefunctionclientdebug.txt",argc, argv);
+     setUpDebugLogging("arithmeticclientdebug.txt",argc, argv);
 
      //
      // Make sure command line looks right
