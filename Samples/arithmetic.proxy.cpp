@@ -2,8 +2,8 @@
 //
 //                        arithmetic.proxy.cpp
 //
-//        Author: Noah Mendelsohn         
-//   
+//       Author: Serena GIbbons
+//
 //       This is a hand-crafted demonstration proxy.
 //
 //       For your project, your "rpcgen" program will generate

@@ -19,21 +19,26 @@
 
 #include "floatarithmetic.idl"
 
+#include <cstdio>
 
 
 float add(float x, float y) {
+  printf("add() invoked\n");
   return x+y;
 }
 
 float subtract(float x, float y) {
+  printf("add() invoked\n");
   return x-y;
 }
 
 float multiply(float x, float y) {
+  printf("add() invoked\n");
   return x*y;
 }
 
 float divide(float x, float y) {
+  printf("add() invoked\n");
   return x/y;
 }
 
