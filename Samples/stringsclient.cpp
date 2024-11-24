@@ -1,8 +1,8 @@
 // --------------------------------------------------------------
 //
-//                        floatarithmeticclient.cpp
+//                        stringsclient.cpp
 //
-//        Author: Noah Mendelsohn         
+//        Author: Serena Gibbons  
 //   
 //
 //        This is a test program designed to call a few demonstration
@@ -11,28 +11,10 @@
 //        to the proper server, and to leave the socket pointer where
 //        the generated proxies can find it.
 //
-//        NOTE: Although this example does nothing except test the
-//        functions, we may test your proxies and stubs with client
-//        applications that do real work. 
-//
-//        NOTE: When actually testing your RPC submission, you will use
-//        a different client application for each set of functions. This
-//        one is just to show a simple example.
-//
-//        NOTE: The only thing that makes this different from 
-//        an ordinary local application is the call to
-//        rpcproxyinitialize. If you commented that out, you could
-//        link this with the local version of simplefunction.o
-//        (which has the remotable function implementations)			      
-//
 //        COMMAND LINE
 //
-//              floatarithmeticclient <servername> 
+//              stringsclient <servername> 
 //
-//        OPERATION
-//
-//
-//       Copyright: 2012 Noah Mendelsohn
 //     
 // --------------------------------------------------------------
 
@@ -45,18 +27,16 @@
 // AND STUBS, AND ALSO USED AS INPUT TO AUTOMATIC PROXY/STUB
 // GENERATOR PROGRAM
 
-#include <string>
-using namespace std;
-
-#include "strings.idl"
-
 #include "rpcproxyhelper.h"
 
 #include "c150debug.h"
 #include "c150grading.h"
 #include <fstream>
+#include <string>
 
 using namespace std;          // for C++ std library
+#include "strings.idl"
+
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
 // forward declarations
@@ -88,7 +68,7 @@ main(int argc, char *argv[]) {
      //
      //  Set up debug message logging
      //
-     setUpDebugLogging("simplefunctionclientdebug.txt",argc, argv);
+     setUpDebugLogging("stringsclientdebug.txt",argc, argv);
 
      //
      // Make sure command line looks right
@@ -116,11 +96,11 @@ main(int argc, char *argv[]) {
        rpcproxyinitialize(argv[serverArg]);
 
        // 
-       // Call (possibly remote) add
+       // Call (possibly remote) concat
        //
-       printf("Calling concat("Hello ", "World")\n");
-       result = concat("Hello ", "World");                          // remote call (we hope!)
-       printf("Returned from concat("Hello ", "World"). Result=%s\n", result);
+       printf("Calling concat(\"Hello \", \"World\"\n");
+       result = concat("Hello ", "World");                          
+       printf("Returned from concat(\"Hello \", \"World). Result=%s\n", result.c_str());
 
      }
 

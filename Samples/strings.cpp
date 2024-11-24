@@ -1,15 +1,14 @@
 // --------------------------------------------------------------
 //
-//                        arithmetic.cpp
+//                        strings.cpp
 //
-//        Author: Noah Mendelsohn         
+//        Author: Serena Gibbons 
 //   
 //
 //        Trivial implementations of the routines declared
-//        in arithmetic.idl. These are for testing: they
+//        in strings.idl. These are for testing: they
 //        just print messages.
 //
-//       Copyright: 2012 Noah Mendelsohn
 //     
 // --------------------------------------------------------------
 
@@ -17,12 +16,14 @@
 // TO THE FUNCTIONS WE'RE IMPLEMENTING. THIS MAKES SURE THE
 // CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
 
+#include <cstdio>
 #include <string>
 using namespace std;
 
 #include "strings.idl"
 
 string concat(string s1, string s2) {
+    printf("concat() invoked\n");
     return s1 + s2;
 }
 
