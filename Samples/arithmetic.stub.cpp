@@ -15,8 +15,6 @@
 #include "serializer.h"
 #include "deserializer.h"
 
-#define SIZE 4
-
 using namespace std;
 using namespace C150NETWORK;
 
@@ -24,7 +22,7 @@ using namespace C150NETWORK;
 void __subtract(int x, int y) {
   int result = subtract(x, y);
   Buffer b;
-  serializeInt(&b, result);
+  serialize(&b, result);
   RPCSTUBSOCKET->write(b.buf, b.length);
   b.reset();
 }
@@ -32,7 +30,7 @@ void __subtract(int x, int y) {
 void __divide(int x, int y) {
   int result = divide(x, y);
   Buffer b;
-  serializeInt(&b, result);
+  serialize(&b, result);
   RPCSTUBSOCKET->write(b.buf, b.length);
   b.reset();
 }
@@ -40,7 +38,7 @@ void __divide(int x, int y) {
 void __add(int x, int y) {
   int result = add(x, y);
   Buffer b;
-  serializeInt(&b, result);
+  serialize(&b, result);
   RPCSTUBSOCKET->write(b.buf, b.length);
   b.reset();
 }
@@ -48,7 +46,7 @@ void __add(int x, int y) {
 void __multiply(int x, int y) {
   int result = multiply(x, y);
   Buffer b;
-  serializeInt(&b, result);
+  serialize(&b, result);
   RPCSTUBSOCKET->write(b.buf, b.length);
   b.reset();
 }

@@ -98,9 +98,9 @@ main(int argc, char *argv[]) {
        // 
        // Call (possibly remote) concat
        //
-       printf("Calling concat(\"Hello \", \"World\"\n");
+       printf("Calling concat(\"Hello \", \"World\")\n");
        result = concat("Hello ", "World");                          
-       printf("Returned from concat(\"Hello \", \"World). Result=%s\n", result.c_str());
+       printf("Returned from concat(\"Hello \", \"World\"). Result=%s\n", result.c_str());
 
      }
 

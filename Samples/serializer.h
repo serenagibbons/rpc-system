@@ -1,7 +1,10 @@
+// --------------------------------------------------------------
+// File: serializer.h
+// Author: Serena GIbbons
+// --------------------------------------------------------------
+
 #ifndef SERIALIZER_H
 #define SERIALIZER_H
-
-#endif  // SERIALIZER_H
 
 #include <string>
 #include <iostream>
@@ -15,28 +18,43 @@ using namespace std;
 #define SIZE 4
 
 // Function declarations
-void serializeInt(Buffer *b, int i);
-void serializeString(Buffer *b, const string &s);
+void serialize(Buffer *b, int i);
+void serialize(Buffer *b, float f);
+void serialize(Buffer *b, const string &s);
 
 // Function implementations
-void serializeInt(Buffer *b, int i) {
-  int converted = htonl(i);
-  int length = b->length + SIZE;
-  char *newBuf = (char *)malloc(length);
-  memcpy(newBuf, b->buf, b->length);
-  memcpy(newBuf + b->length, &converted, SIZE);
-  b->reset();
-  b->buf = newBuf;
-  b->length = length;
+void serialize(Buffer *b, int i) {
+    int networkByteOrder = htonl(i);
+    int length = b->length + SIZE;
+    char *newBuf = (char *)malloc(length);
+    memcpy(newBuf, b->buf, b->length);
+    memcpy(newBuf + b->length, &networkByteOrder, SIZE);
+    b->reset();
+    b->buf = newBuf;
+    b->length = length;
 }
 
-void serializeString(Buffer *b, const string &s) {
-  serializeInt(b, s.length());
-  int length = b->length + s.length();
-  char *newBuf = (char *)malloc(length);
-  memcpy(newBuf, b->buf, b->length);
-  memcpy(newBuf + b->length, s.c_str(), s.length());
-  b->reset();
-  b->buf = newBuf;
-  b->length = length;
+void serialize(Buffer *b, float f) {
+	string s = to_string(f);
+	serialize(b, static_cast<int>(s.length()));
+    int length = b->length + s.length();
+    char *newBuf = (char *)malloc(length);
+    memcpy(newBuf, b->buf, b->length);
+    memcpy(newBuf + b->length, s.c_str(), s.length());
+    b->reset();
+    b->buf = newBuf;
+    b->length = length;
 }
+
+void serialize(Buffer *b, const string &s) {
+	serialize(b, static_cast<int>(s.length()));
+    int length = b->length + s.length();
+    char *newBuf = (char *)malloc(length);
+    memcpy(newBuf, b->buf, b->length);
+    memcpy(newBuf + b->length, s.c_str(), s.length());
+    b->reset();
+    b->buf = newBuf;
+    b->length = length;
+}
+
+#endif  // SERIALIZER_H

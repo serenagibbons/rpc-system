@@ -1,49 +1,36 @@
 // --------------------------------------------------------------
-//
-//                        strings.proxy.cpp
-//
-//       Author: Serena GIbbons
-//
-//       This is a hand-crafted demonstration proxy.
-//
+// File: strings.proxy.cpp
+// Author: Serena Gibbons
 // --------------------------------------------------------------
-
-// IMPORTANT! WE INCLUDE THE IDL FILE AS IT DEFINES THE INTERFACES
-// TO THE FUNCTIONS WE'RE IMPLEMENTING. THIS MAKES SURE THE
-// CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
-
-#include "rpcproxyhelper.h"
-
-#include <cstdio>
-#include <cstring>
-#include "c150debug.h"
 
 #include <string>
 using namespace std;
 
+#include <iostream>
+#include <vector>
+#include <cstring>
+#include <cstdio>
 #include "strings.idl"
+#include "rpcproxyhelper.h"
+#include "c150debug.h"
+#include "buffer.h"
+#include "serializer.h"
+#include "deserializer.h"
 
-using namespace C150NETWORK;  // for all the comp150 utilities 
+using namespace std;
+using namespace C150NETWORK;
 
-string concat(string s1, string s2) {
-  char readBuffer[5];  // to read magic value DONE + null
-  //
-  // Send the Remote Call
-  //
-  c150debug->printf(C150RPCDEBUG,"strings.proxy.cpp: concat() invoked");
-  RPCPROXYSOCKET->write("concat", strlen("concat")+1); // write function name including null
-  //
-  // Read the response
-  //
-  c150debug->printf(C150RPCDEBUG,"strings.proxy.cpp: concat() invocation sent, waiting for response");
-  RPCPROXYSOCKET->read(readBuffer, sizeof(readBuffer)); // only legal response is DONE
+// RPC Function Implementation
+string remoteProcedureCall(const string &functionName, string s1, string s2) {
+  Buffer b;
+  serialize(&b, functionName);
+  serialize(&b, s1);
+  serialize(&b, s2);
+  RPCPROXYSOCKET->write(b.buf, b.length);
+  b.reset();
+  return deserializeString(RPCPROXYSOCKET);
+}
 
-  //
-  // Check the response
-  //
-  if (strncmp(readBuffer,"DONE", sizeof(readBuffer))!=0) {
-    throw C150Exception("strings.proxy: concat() received invalid response from the server");
-  }
-  c150debug->printf(C150RPCDEBUG,"strings.proxy.cpp: concat() successful return from remote call");
-  return s1 + s2;
+string concat (string s1, string s2) {
+  return remoteProcedureCall("concat", s1, s2);
 }

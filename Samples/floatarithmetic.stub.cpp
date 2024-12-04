@@ -1,48 +1,99 @@
 // --------------------------------------------------------------
-//
-//                        floatarithmetic.stub.cpp
-//
-//       Author: Serena Gibbons
-//   
-//       This is a hand-crafted demonstration stub.
-//
-//       It implements a very simple protocol that works only
-//       for functions with no arguments and void return. Invocation
-//       requests are just the null terminated function name; 
-//       Responses are the null terminated words DONE or BAD.
-//       You'll have to do something much more sophisticated
-//       for routines that accept and return values. (And you might
-//       not want to use nulls as delimiters in your protocol, since
-//       some of the values you send might contain them!)
-//
-//       For your project, your "rpcgen" program will generate
-//       stubs like this one automatically from the idl
-//       file. Note that this stub also #includes the 
-//       floatarithmetic.idl file. Of course, your rpcgen
-//       program will change that, as well as the number
-//       of functions generated. More importantly, it will
-//       generate code to handle function arguments and
-//       return values.
-//
-//       You can structure your stub however you like. This
-//       one relies on the container to loop calling 
-//       dispatchFunction() until eof is reached, but you
-//       can do it other ways. In general, there needs to
-//       be some place where you read the stream to see
-//       which function to call; how you do that is up to you.
-//
-//       Copyright: 2012 Noah Mendelsohn
-//
+// File: floatarithmetic.stub.cpp
+// Author: Serena Gibbons
 // --------------------------------------------------------------
 
-// IMPORTANT! WE INCLUDE THE IDL FILE AS IT DEFINES THE INTERFACES
-// TO THE FUNCTIONS WE'RE IMPLEMENTING. THIS MAKES SURE THE
-// CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
-
+#include <string>
+#include <iostream>
+#include <vector>
+#include <cstring>
+#include <cstdio>
 #include "floatarithmetic.idl"
-
 #include "rpcstubhelper.h"
+#include "c150debug.h"
+#include "buffer.h"
+#include "serializer.h"
+#include "deserializer.h"
 
+using namespace std;
+using namespace C150NETWORK;
+
+void __divide(float x, float y) {
+    float res = divide(x, y);
+    struct Buffer b;
+    b.buf = (char*) malloc(1);
+    b.length = 0;
+    serialize(&b, res);
+    RPCSTUBSOCKET->write(b.buf, b.length);
+}
+
+void __multiply(float x, float y) {
+    float res = multiply(x, y);
+    struct Buffer b;
+    b.buf = (char*) malloc(1);
+    b.length = 0;
+    serialize(&b, res);
+    RPCSTUBSOCKET->write(b.buf, b.length);
+}
+
+void __subtract(float x, float y) {
+    float res = subtract(x, y);
+    struct Buffer b;
+    b.buf = (char*) malloc(1);
+    b.length = 0;
+    serialize(&b, res);
+    RPCSTUBSOCKET->write(b.buf, b.length);
+}
+
+void __add(float x, float y) {
+    float res = add(x, y);
+    struct Buffer b;
+    b.buf = (char*) malloc(1);
+    b.length = 0;
+    serialize(&b, res);
+    RPCSTUBSOCKET->write(b.buf, b.length);
+}
+
+void __badFunction(const char *functionName) {
+    char doneBuffer[5] = "BAD";
+    RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);
+}
+
+void dispatchFunction() {
+  if (!RPCSTUBSOCKET->eof()) {
+      string func_name = deserializeString(RPCSTUBSOCKET);
+      if (func_name.compare("") == 0) 
+          return;
+      else if (func_name == "divide") {
+          float x = deserializeFloat(RPCSTUBSOCKET);
+          float y = deserializeFloat(RPCSTUBSOCKET);
+          __divide(x, y);
+      }
+      else if (func_name == "multiply") {
+          float x = deserializeFloat(RPCSTUBSOCKET);
+          float y = deserializeFloat(RPCSTUBSOCKET);
+          __multiply(x, y);
+      }
+      else if (func_name == "subtract") {
+          float x = deserializeFloat(RPCSTUBSOCKET);
+          float y = deserializeFloat(RPCSTUBSOCKET);
+          __subtract(x, y);
+      }
+      else if (func_name == "add") {
+          float x = deserializeFloat(RPCSTUBSOCKET);
+          float y = deserializeFloat(RPCSTUBSOCKET);
+          __add(x, y);
+      }
+      else {
+          printf("BAD FUNCTION");
+      }
+    }
+}
+
+
+/*
+#include "floatarithmetic.idl"
+#include "rpcstubhelper.h"
 #include <cstdio>
 #include <cstring>
 #include "c150debug.h"
@@ -285,3 +336,4 @@ void getFunctionNameFromStream(char *buffer, unsigned int bufSize) {
 }
 
 
+*/

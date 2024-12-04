@@ -28,17 +28,17 @@ float add(float x, float y) {
 }
 
 float subtract(float x, float y) {
-  printf("add() invoked\n");
+  printf("subtract() invoked\n");
   return x-y;
 }
 
 float multiply(float x, float y) {
-  printf("add() invoked\n");
+  printf("multiply() invoked\n");
   return x*y;
 }
 
 float divide(float x, float y) {
-  printf("add() invoked\n");
+  printf("divide() invoked\n");
   return x/y;
 }
 
