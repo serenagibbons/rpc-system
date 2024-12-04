@@ -1,6 +1,6 @@
 // --------------------------------------------------------------
 // File: arithmetic.stub.cpp
-// Author: Serena GIbbons
+// Author: Serena Gibbons
 // --------------------------------------------------------------
 
 #include <string>

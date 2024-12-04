@@ -1,5 +1,10 @@
 #!/bin/env python3
 
+# --------------------------------------------------------------
+# File: rpcgenerate
+# Author: Serena GIbbons
+# --------------------------------------------------------------
+
 import argparse
 import os
 import re
@@ -7,6 +12,9 @@ import json
 import subprocess
 
 IDL_TO_JSON_EXECUTABLE = './idl_to_json'
+
+TYPE_OF_TYPES = ['builtin', 'struct', 'array']
+BUILTIN_TYPES = ['void', 'int', 'float', 'string']
 
 def idl_to_json(filename):
     """
@@ -26,8 +34,101 @@ def idl_to_json(filename):
     
     return decls
 
+def generate_headers(idl_filename, file_type):
+    """
+    Generate the list of header files and namespaces to include
+    """
+    header_files = (
+        "#include <string>\n"
+        "using namespace std;\n"
+        "#include <iostream>\n"
+        "#include <vector>\n"
+        "#include <cstring>\n"
+        "#include <cstdio>\n"
+        "#include \"" + idl_filename +"\"\n"
+        "#include \"rpc" + file_type + "helper.h\"\n"
+        "#include \"c150debug.h\"\n"
+        "#include \"buffer.h\"\n"
+        "#include \"serializer.h\"\n"
+        "#include \"deserializer.h\"\n"
+        "using namespace C150NETWORK;\n")
+   
+    return header_files
+
+def generate_proxy(functions):
+    """
+    Generate the proxy code
+    """
+    remote_functions = ""
+    for name, sig in functions.items():
+        args = sig["arguments"]
+        return_type = sig["return_type"]
+        remote_functions += generate_remote_function(name, args, return_type)
+    return remote_functions
+
+def generate_remote_function(function_name, args, return_type):
+    """
+    Generate the remote function
+    """
+    # Build argument string and serialization function calls
+    arg_string_list = []
+    serialize_calls = []
+    for arg in args:
+        arg_declaration, serializer_call = parse_argument(arg)
+        arg_string_list.append(arg_declaration)
+        serialize_calls.append(serializer_call)
+    
+    arg_string = ", ".join(arg_string_list)
+    serialize_args = "\n\t".join(serialize_calls)
+
+    # Determine function ending based on return type
+    if return_type in {"string", "int", "float"}:
+        end = (f"\t{return_type} result = deserialize{return_type.capitalize()}(RPCPROXYSOCKET);\n"
+               "\treturn result;\n")
+    elif return_type == "void":
+        end = ("\tstring result = deserializeString(RPCPROXYSOCKET);\n"
+                 "\tif (result.compare(\"DONE\") != 0) {\n"
+                 "\t\tthrow C150Exception("
+                 f"\"{function_name}() received invalid response from the server\");\n"
+                 "\t}\n")
+
+    # Construct the function body
+    body = (f"\tBuffer b;\n"
+              f"\tserialize(&b, \"{function_name}\");\n"
+              f"\t{serialize_args}\n"
+              f"\tRPCPROXYSOCKET->write(b.buf, b.length);\n"
+              f"\tb.reset();"
+              f"{end}")
+
+    # Construct the complete remote function
+    remote_function = (f"{return_type} {function_name}({arg_string}) {{\n"
+                       f"{body}}}\n")
+
+    return remote_function
+
+def parse_argument(arg):
+        """
+        Helper function to parse an argument and generate the arg string and serializer call.
+        """
+        arg_type = arg["type"]
+        arg_name = arg["name"]
+        
+        if '[' in arg_type:
+            arg_type_clean = arg_type[2:]
+            arg_inner_type = arg_type_clean.split('[', 1)[0]
+            arg_size_bracket = '[' + arg_type_clean.split('[', 1)[1]
+            arg_declaration = f"{arg_inner_type} {arg_name}{arg_size_bracket}"
+        else:
+            arg_declaration = f"{arg_type} {arg_name}"
+        
+        # Prepare serializer call
+        serializer_call = f"serialize(&b, {arg_name});"
+        
+        return arg_declaration, serializer_call
+
 def main():
     """
+    Generate the RPC proxy and stub files from the given idl file.
     Command line: python rpcgenerate <idl_filepath>
     """
     # Parse arguments
@@ -38,10 +139,6 @@ def main():
     # Set idl file path
     idl_filepath = args.idl_filepath
     idl_filename = os.path.basename(idl_filepath)
-    
-    # Set proxy and stub file names
-    proxy_filename = re.sub(r'\.idl', '.proxy.cpp', idl_filename)
-    stub_filename = re.sub(r'\.idl', '.stub.cpp', idl_filename)
 
     # Parse declarations into a Python dictionary
     decls = idl_to_json(idl_filepath)
@@ -49,12 +146,31 @@ def main():
     print(json_string)
 
     # Get types and functions
-    types = decls["types"]
-    functions = decls["functions"]
+    types = decls['types']
+    functions = decls['functions']
 
-    # Generate the include statement for the IDL file
-    idl_include = f"#include \"{idl_filename}\""
-    print(idl_include)
+    # Set proxy and stub file names
+    proxy_filename = re.sub(r'\.idl', '.proxy.cpp', idl_filename)
+    stub_filename = re.sub(r'\.idl', '.stub.cpp', idl_filename)
+
+    # Generate the header files and namespaces
+    proxy_headers = generate_headers(idl_filename, 'proxy')
+    stub_headers = generate_headers(idl_filename, 'stub')
+
+    # Generate code
+    proxy_code = generate_proxy(functions)
+    #stub_code = generate_stub(functions) #TODO
+
+    print(proxy_filename + ":\n" + proxy_code)
+    #print(stub_filename + ":\n" +stub_code) #TODO
+
+    # Write the proxy code to the proxy file
+    with open("test.proxy.cpp", 'w') as f:
+        f.writelines([proxy_headers, proxy_code])
+
+    # Write the stub code to the stub file
+    # with open("test.stub.cpp", 'w') as f: #TODO
+    #     f.writelines([stub_headers, stub_code])
 
 if __name__=="__main__":
 	main()
