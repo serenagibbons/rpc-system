@@ -91,13 +91,14 @@ def generate_remote_function(function_name, args, return_type):
                  "\t\tthrow C150Exception("
                  f"\"{function_name}() received invalid response from the server\");\n"
                  "\t}\n")
+    #TODO: Add other return types
 
     # Construct the function body
     body = (f"\tBuffer b;\n"
               f"\tserialize(&b, \"{function_name}\");\n"
               f"\t{serialize_args}\n"
               f"\tRPCPROXYSOCKET->write(b.buf, b.length);\n"
-              f"\tb.reset();"
+              f"\tb.reset();\n"
               f"{end}")
 
     # Construct the complete remote function
@@ -125,6 +126,110 @@ def parse_argument(arg):
         serializer_call = f"serialize(&b, {arg_name});"
         
         return arg_declaration, serializer_call
+
+
+def generate_stub(functions):
+    """
+    Generates stub code for the given functions.
+    """
+    stub_code = ""
+    dispatcher_deserializers = ""
+
+    for name, sig in functions.items():
+        args = sig["arguments"]
+        return_type = sig["return_type"]
+
+        # Generate local function for each RPC function
+        stub_code += generate_local_functions(name, args, return_type)
+
+        # Generate argument deserialization and dispatcher logic
+        arg_names = ', '.join([arg["name"] for arg in args])
+        arg_deserializers = ""
+
+        for arg in args:
+            arg_type = arg["type"]
+            if arg_type in {"string", "int", "float"}:
+                arg_deserializers += (
+                    f"\t\t\t{arg_type} {arg['name']} = deserialize{arg_type.capitalize()}(RPCSTUBSOCKET);\n"
+                )
+            # TODO: Add other argument types
+
+        # Call the corresponding local function
+        arg_deserializers += f"\t\t\t__{name}({arg_names});\n"
+        dispatcher_deserializers += (
+            f"\t\telse if (func_name == \"{name}\") {{\n"
+            f"{arg_deserializers}\t\t}}\n"
+        )
+
+    # Dispatcher function body
+    dispatcher_body = (
+        "\tif (!RPCSTUBSOCKET->eof()) {\n"
+        "\t\tstring func_name = deserializeString(RPCSTUBSOCKET);\n"
+        "\t\tif (func_name.compare(\"\") == 0) return;\n"
+        f"{dispatcher_deserializers}"
+        "\t\telse {\n"
+        "\t\t\tthrow C150Exception(\"Error: invalid function.\");\n"
+        "\t\t}\n"
+        "\t}\n"
+    )
+
+    # Complete dispatcher function
+    dispatcher = f"void dispatchFunction() {{\n{dispatcher_body}}}\n"
+    stub_code += dispatcher
+
+    return stub_code
+
+def parse_array(arg_type):
+    """
+    Parses array type arguments to extract inner type and size.
+    """
+    arg_type_clean = arg_type[2:]
+    arg_inner_type = arg_type_clean.split('[', 1)[0]
+    arg_size_bracket = '[' + arg_type_clean.split('[', 1)[1]
+    return arg_inner_type, arg_size_bracket
+
+def generate_local_functions(function_name, args, return_type):
+    """
+    Generates the local function stub for an RPC function.
+    """
+    arg_string = ""
+    arg_names = ', '.join([arg["name"] for arg in args])
+
+    # Build argument list for the function signature
+    for i, arg in enumerate(args):
+        arg_type = arg["type"]
+        arg_name = arg["name"]
+
+        if '[' in arg_type:  # Handle array types
+            arg_inner_type, arg_size_bracket = parse_array(arg_type)
+            arg_string += f"{', ' if i > 0 else ''}{arg_inner_type} {arg_name}{arg_size_bracket}"
+        else:
+            arg_string += f"{', ' if i > 0 else ''}{arg_type} {arg_name}"
+
+    # Generate function call and serialization logic
+    if return_type == "void":
+        function_call = f"\t{function_name}({arg_names});\n\tstring result = \"DONE\";\n"
+        serialize_call = "\tserialize(&b, result);\n"
+    else:
+        function_call = f"\t{return_type} result = {function_name}({arg_names});\n"
+        serialize_call = "\tserialize(&b, result);\n"
+
+    # Function body
+    body = (
+        "\tBuffer b;\n"
+        f"{serialize_call}"
+        "\tRPCSTUBSOCKET->write(b.buf, b.length);\n"
+        "\tb.reset();\n"
+    )
+
+    # Combine into the local function definition
+    local_function = (
+        f"void __{function_name}({arg_string}) {{\n"
+        f"{function_call}"
+        f"{body}}}\n"
+    )
+
+    return local_function
 
 def main():
     """
@@ -159,18 +264,18 @@ def main():
 
     # Generate code
     proxy_code = generate_proxy(functions)
-    #stub_code = generate_stub(functions) #TODO
+    stub_code = generate_stub(functions)
 
     print(proxy_filename + ":\n" + proxy_code)
-    #print(stub_filename + ":\n" +stub_code) #TODO
+    print(stub_filename + ":\n" +stub_code)
 
     # Write the proxy code to the proxy file
-    with open("test.proxy.cpp", 'w') as f:
+    with open(proxy_filename, 'w') as f:
         f.writelines([proxy_headers, proxy_code])
 
     # Write the stub code to the stub file
-    # with open("test.stub.cpp", 'w') as f: #TODO
-    #     f.writelines([stub_headers, stub_code])
+    with open(stub_filename, 'w') as f:
+        f.writelines([stub_headers, stub_code])
 
 if __name__=="__main__":
 	main()
