@@ -44,7 +44,7 @@ CPPFLAGS = -g -Wall -Werror -I$(C150IDSRPC) -I$(C150LIB)
 LDFLAGS = 
 INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h ./*.h ./*.idl
 
-all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver
+all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver
 
 ########################################################################
 #
@@ -120,11 +120,11 @@ stringsserver: strings.stub.o rpcserver.o rpcstubhelper.o strings.o  $(C150AR) $
 # Demonstrating remote calls to functions as declared in floatarithmetic.idl
 # The proxies and stubs used here are hand generated.
 
-# structsclient: structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-# 	$(CPP) -o structsclient structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C150IDSRPCAR) 
+structsclient: structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o structsclient structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C150IDSRPCAR) 
 
-# structsserver: structs.stub.o rpcserver.o rpcstubhelper.o structs.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
-# 	$(CPP) -o structsserver rpcserver.o structs.stub.o structs.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
+structsserver: structs.stub.o rpcserver.o rpcstubhelper.o structs.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o structsserver rpcserver.o structs.stub.o structs.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
 ########################################################################
 #
@@ -258,6 +258,6 @@ idl_to_json: idl_to_json.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 
 # clean up everything we build dynamically (probably missing .cpps from .idl)
 clean:
-	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver *.o *.json *.pyc
+	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver *.o *.json *.pyc
 
 
