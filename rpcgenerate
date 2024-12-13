@@ -172,7 +172,19 @@ def generate_stub(decls):
                 arg_deserializers += (
                     f"\t\t\t{arg_type} {arg['name']} = deserialize{arg_type.capitalize()}(RPCSTUBSOCKET);\n"
                 )
-            # TODO: Add other argument types
+            elif '[' in arg_type:
+                arg_inner_type, arg_size_bracket = parse_array(arg_type)
+                # arg_deserializers += ("\t\t\t" + arg_inner_type + " " + arg["name"] + arg_size_bracket + ";\n\t\t\t" + arg["type"].replace('][', '_').replace(']', '_').replace('[', '_') + "_deserializer(" + arg["name"] + ");\n")
+                arg_deserializers += (
+                    f"\t\t\t{arg_inner_type} {arg['name']}{arg_size_bracket};\n"
+                    f"\t\t\tdeserialize{arg['type'].replace('][', '_').replace(']', '_').replace('[', '_')}({arg['name']});\n"
+                )
+            else:
+                # arg_deserializers += ("\t\t\t" + arg["type"] + " " + arg["name"] + ";\n\t\t\t" + arg["type"].replace('][', '_').replace(']', '_').replace('[', '_') + "_deserializer(&(" + arg["name"] + "));\n")
+                arg_deserializers += (
+                    f"\t\t\t{arg['type']} {arg['name']};\n"
+                    f"\t\t\tdeserialize{arg['type'].replace('][', '_').replace(']', '_').replace('[', '_')}(&({arg['name']}));\n"
+                )
 
         # Call the corresponding local function
         arg_deserializers += f"\t\t\t__{name}({arg_names});\n"
@@ -229,15 +241,13 @@ def generate_local_functions(function_name, args, return_type):
     # Generate function call and serialization logic
     if return_type == "void":
         function_call = f"\t{function_name}({arg_names});\n\tstring result = \"DONE\";\n"
-        serialize_call = "\tserialize(&b, result);\n"
     else:
         function_call = f"\t{return_type} result = {function_name}({arg_names});\n"
-        serialize_call = "\tserialize(&b, result);\n"
 
     # Function body
     body = (
         "\tBuffer b;\n"
-        f"{serialize_call}"
+        "\tserialize(&b, result);\n"
         "\tRPCSTUBSOCKET->write(b.buf, b.length);\n"
         "\tb.reset();\n"
     )
@@ -307,16 +317,26 @@ def generate_serializers_and_deserializers(type_set, struct_info, file_type):
 
     for type_of_type in type_set:
         if type_of_type not in BUILTIN_TYPES:
-            serializer, serializer_contract = generate_serializer(type_of_type, struct_info)
-            serializers += serializer
-            serializer_contracts += serializer_contract
-            deserializer, deserializer_contract = generate_deserializer(type_of_type, struct_info, file_type)
-            deserializers += deserializer
-            deserializer_contracts += deserializer_contract
+            # Arrays
+            if type_of_type.startswith("__"):
+                serializer, serializer_contract = generate_array_serializer(type_of_type)
+                serializers += serializer
+                serializer_contracts += serializer_contract
+                deserializer, deserializer_contract = generate_array_deserializer(type_of_type, file_type)
+                deserializers += deserializer
+                deserializer_contracts += deserializer_contract
+            # Structs
+            else:
+                serializer, serializer_contract = generate_struct_serializer(type_of_type, struct_info)
+                serializers += serializer
+                serializer_contracts += serializer_contract
+                deserializer, deserializer_contract = generate_struct_deserializer(type_of_type, struct_info, file_type)
+                deserializers += deserializer
+                deserializer_contracts += deserializer_contract
     
     return serializers, serializer_contracts, deserializers, deserializer_contracts
 
-def generate_serializer(type_of_type, struct_info):
+def generate_struct_serializer(type_of_type, struct_info):
     """
     Generate function to serialize a struct.
     """
@@ -324,15 +344,14 @@ def generate_serializer(type_of_type, struct_info):
     for struct in struct_info:
         if struct["struct_name"] == type_of_type:
             for mem_name, mem_type in zip(struct["mem_name"], struct["mem_type"]):
-                formatted_mem_type = mem_type.replace('][', '_').replace('[', '_').replace(']', '_')
-                serializer_body += f"\t{formatted_mem_type}serialize(b, {type_of_type[0]}1.{mem_name});\n"
+                serializer_body += f"\tserialize(b, {type_of_type[0]}1.{mem_name});\n"
 
-    serializer = f"void serialize{type_of_type}(Buffer *b, {type_of_type} {type_of_type[0]}1) {{\n{serializer_body}}}\n"
-    serializer_contract = f"void serialize{type_of_type}(Buffer *b, {type_of_type} {type_of_type[0]}1);\n"
+    serializer = f"void serialize(Buffer *b, {type_of_type} {type_of_type[0]}1) {{\n{serializer_body}}}\n"
+    serializer_contract = f"void serialize(Buffer *b, {type_of_type} {type_of_type[0]}1);\n"
     
     return serializer, serializer_contract
 
-def generate_deserializer(type_of_type, struct_info, file_type):
+def generate_struct_deserializer(type_of_type, struct_info, file_type):
     var = f"{type_of_type[0]}1"
     deserializer_body = ""
     for struct in struct_info:
@@ -350,6 +369,84 @@ def generate_deserializer(type_of_type, struct_info, file_type):
     deserializer = f"void deserialize{type_of_type} ({type_of_type} *{var}) {{\n{deserializer_body}}}\n"
     deserializer_contract = f"void deserialize{type_of_type} ({type_of_type} *{var});\n"
     
+    return deserializer, deserializer_contract
+
+def generate_array_serializer(type_of_type):
+    # Extract array size part from the type string
+    arr_sizes_string = '[' + type_of_type.split('[', 1)[1]
+    
+    # Clean up the type of type to extract base type and array sizes
+    cleaned_type = type_of_type.replace('][', '_').replace('[', '_').replace(']', '_')
+    arr_type = [s for s in cleaned_type.split('_') if s.isalpha()][0]
+    arr_sizes = [int(s) for s in cleaned_type.split('_') if s.isdigit()]
+
+    # Initialize serializer body and variables
+    idx = 0
+    indent = ""
+    serializer_body = ""
+    var_list = []
+
+    # Generate for loops to handle array serialization
+    for size in arr_sizes:
+        var = f"i{idx}"
+        var_list.append(var)
+        serializer_body += f"{indent}\tfor (int {var} = 0; {var} < {size}; {var}++) {{\n"
+        idx += 1
+        indent += "\t"
+
+    # Add the serialization function call with array indexing
+    arr_vars_string = ''.join([f"[{var}]" for var in var_list])
+    serializer_body += f"{indent}\tserialize(b, arr{arr_vars_string});\n"
+
+    # Close the for loops
+    for _ in arr_sizes:
+        serializer_body += f"{indent}}}\n"
+        indent = indent[:-1]
+
+    # Generate the full function and contract
+    serializer = f"void serialize(Buffer *b, {arr_type} arr{arr_sizes_string}) {{\n{serializer_body}}}\n"
+    serializer_contract = f"void serialize(Buffer *b, {arr_type} arr{arr_sizes_string});\n"
+
+    return serializer, serializer_contract
+
+def generate_array_deserializer(type_of_type, file_type):
+    # Extract array size and clean type representation
+    arr_sizes_string = f"[{type_of_type.split('[', 1)[1]}"
+    type_of_type = type_of_type.replace('][', '_').replace('[', '_').replace(']', '_')
+
+    # Extract array type and sizes
+    arr_type = [s for s in type_of_type.split('_') if s.isalpha()][0]
+    arr_sizes = [int(s) for s in type_of_type.split('_') if s.isdigit()]
+
+    idx = 0
+    tab = ""
+    deserializer_body = ""
+    vars_list = []
+
+    # Generate deserializer loops for array sizes
+    for size in arr_sizes:
+        var = f"i{idx}"
+        vars_list.append(var)
+        deserializer_body += f"{tab}\tfor (int {var} = 0; {var} < {size}; {var}++) {{\n"
+        idx += 1
+        tab += "\t"
+
+    # Generate the deserialization for the array elements
+    arr_vars_string = ''.join([f"[{var}]" for var in vars_list])
+    if arr_type in {"string", "float", "int"}:
+        deserializer_body += f"{tab}\tarr{arr_vars_string} = deserialize{arr_type}(RPC{file_type.upper()}SOCKET);\n"
+    else:  # Struct type
+        deserializer_body += f"{tab}\tdeserialize{arr_type}(&(arr{arr_vars_string}));\n"
+
+    # Close array size loops
+    for _ in arr_sizes:
+        deserializer_body += f"{tab}}}\n"
+        tab = tab[:-1]
+
+    # Generate full deserializer function and its contract
+    deserializer = f"void deserialize{type_of_type}({arr_type} arr{arr_sizes_string}) {{\n{deserializer_body}}}\n"
+    deserializer_contract = f"void deserialize{type_of_type}({arr_type} arr{arr_sizes_string});\n"
+
     return deserializer, deserializer_contract
 
 def main():
