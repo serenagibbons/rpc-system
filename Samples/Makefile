@@ -44,7 +44,7 @@ CPPFLAGS = -g -Wall -Werror -I$(C150IDSRPC) -I$(C150LIB)
 LDFLAGS = 
 INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h ./*.h ./*.idl
 
-all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver
+all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server
 
 ########################################################################
 #
@@ -108,7 +108,7 @@ floatarithmeticserver: floatarithmetic.stub.o rpcserver.o rpcstubhelper.o floata
 	$(CPP) -o floatarithmeticserver rpcserver.o floatarithmetic.stub.o floatarithmetic.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
 
-# Demonstrating remote calls to functions as declared in floatarithmetic.idl
+# Demonstrating remote calls to functions as declared in strings.idl
 # The proxies and stubs used here are hand generated.
 
 stringsclient: stringsclient.o rpcproxyhelper.o strings.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
@@ -117,7 +117,7 @@ stringsclient: stringsclient.o rpcproxyhelper.o strings.proxy.o  $(C150AR) $(C15
 stringsserver: strings.stub.o rpcserver.o rpcstubhelper.o strings.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 	$(CPP) -o stringsserver rpcserver.o strings.stub.o strings.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
-# Demonstrating remote calls to functions as declared in floatarithmetic.idl
+# Demonstrating remote calls to functions as declared in structs.idl
 # The proxies and stubs used here are hand generated.
 
 structsclient: structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
@@ -125,6 +125,15 @@ structsclient: structsclient.o rpcproxyhelper.o structs.proxy.o  $(C150AR) $(C15
 
 structsserver: structs.stub.o rpcserver.o rpcstubhelper.o structs.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 	$(CPP) -o structsserver rpcserver.o structs.stub.o structs.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
+
+# Demonstrating remote calls to functions as declared in testarray1.idl
+# The proxies and stubs used here are hand generated.
+
+testarray1client: testarray1client.o rpcproxyhelper.o testarray1.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o testarray1client testarray1client.o rpcproxyhelper.o testarray1.proxy.o  $(C150AR) $(C150IDSRPCAR) 
+
+testarray1server: testarray1.stub.o rpcserver.o rpcstubhelper.o testarray1.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o testarray1server rpcserver.o testarray1.stub.o testarray1.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
 ########################################################################
 #
@@ -258,6 +267,6 @@ idl_to_json: idl_to_json.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 
 # clean up everything we build dynamically (probably missing .cpps from .idl)
 clean:
-	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver *.o *.json *.pyc
+	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server *.o *.json *.pyc
 
 
