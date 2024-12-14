@@ -44,7 +44,7 @@ CPPFLAGS = -g -Wall -Werror -I$(C150IDSRPC) -I$(C150LIB)
 LDFLAGS = 
 INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h ./*.h ./*.idl
 
-all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server
+all: pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server testarray2client testarray2server
 
 ########################################################################
 #
@@ -135,6 +135,17 @@ testarray1client: testarray1client.o rpcproxyhelper.o testarray1.proxy.o  $(C150
 testarray1server: testarray1.stub.o rpcserver.o rpcstubhelper.o testarray1.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 	$(CPP) -o testarray1server rpcserver.o testarray1.stub.o testarray1.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
+
+# Demonstrating remote calls to functions as declared in testarray2.idl
+# The proxies and stubs used here are hand generated.
+
+testarray2client: testarray2client.o rpcproxyhelper.o testarray2.proxy.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o testarray2client testarray2client.o rpcproxyhelper.o testarray2.proxy.o  $(C150AR) $(C150IDSRPCAR) 
+
+testarray2server: testarray2.stub.o rpcserver.o rpcstubhelper.o testarray2.o  $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
+	$(CPP) -o testarray2server rpcserver.o testarray2.stub.o testarray2.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
+
+
 ########################################################################
 #
 #          Compile the rpcgenerate program
@@ -144,9 +155,9 @@ testarray1server: testarray1.stub.o rpcserver.o rpcstubhelper.o testarray1.o  $(
 #
 ########################################################################
 
-# Compile the rpcgenerate program
-rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
-	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
+# # Compile the rpcgenerate program
+# rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
+# 	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
 
 ########################################################################
 #
@@ -169,12 +180,12 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 ########################################################################
 
 # Compile / link any client executable: 
-# %client: %.o %.proxy.o rpcserver.o rpcproxyhelper.o %client.o %.proxy.o
-# 	$(CPP) -o $@ $@.o rpcproxyhelper.o $*.proxy.o  $(C150AR) $(C150IDSRPCAR) 
+%client: %.o %.proxy.o rpcserver.o rpcproxyhelper.o %client.o %.proxy.o
+	$(CPP) -o $@ $@.o rpcproxyhelper.o $*.proxy.o  $(C150AR) $(C150IDSRPCAR) 
 
-# # Compile / link any server executable:
-# %server: %.o %.stub.o rpcserver.o rpcstubhelper.o %.stub.o
-# 	$(CPP) -o $@ rpcserver.o $*.stub.o $*.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
+# Compile / link any server executable:
+%server: %.o %.stub.o rpcserver.o rpcstubhelper.o %.stub.o
+	$(CPP) -o $@ rpcserver.o $*.stub.o $*.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
 
 
@@ -197,8 +208,8 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 #
 ########################################################################
 
-# %.proxy.cpp %.stub.cpp:%.idl $(RPCGEN)
-#	$(RPCGEN) $<
+%.proxy.cpp %.stub.cpp:%.idl $(RPCGEN)
+	$(RPCGEN) $<
 
 ########################################################################
 #
@@ -267,6 +278,6 @@ idl_to_json: idl_to_json.o $(C150AR) $(C150IDSRPCAR)  $(INCLUDES)
 
 # clean up everything we build dynamically (probably missing .cpps from .idl)
 clean:
-	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server *.o *.json *.pyc
+	 rm -f pingstreamclient pingstreamserver idldeclarationtst idl_to_json simplefunctionclient simplefunctionserver arithmeticclient arithmeticserver floatarithmeticclient floatarithmeticserver stringsclient stringsserver structsclient structsserver testarray1client testarray1server testarray2client testarray2server *.o *.json *.pyc
 
 
