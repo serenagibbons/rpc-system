@@ -20,17 +20,43 @@ using namespace std;
 using namespace std;
 using namespace C150NETWORK;
 
-// RPC Function Implementation
-string remoteProcedureCall(const string &functionName, string s1, string s2) {
-  Buffer b;
-  serialize(&b, functionName);
-  serialize(&b, s1);
-  serialize(&b, s2);
-  RPCPROXYSOCKET->write(b.buf, b.length);
-  b.reset();
-  return deserializeString(RPCPROXYSOCKET);
+void serialize__string_3_(Buffer *b, string arr[3]);
+void deserialize__string_3_(string arr[3]);
+
+void serialize__string_3_(Buffer *b, string arr[3]) {
+	for (int i0 = 0; i0 < 3; i0++) {
+		serialize(b, arr[i0]);
+	}
+}
+void deserialize__string_3_(string arr[3]) {
+	for (int idx0 = 0; idx0 < 3; idx0++) {
+		arr[idx0] = deserializeString(RPCPROXYSOCKET);
+	}
 }
 
-string concat (string s1, string s2) {
-  return remoteProcedureCall("concat", s1, s2);
+string concat(string s1, string s2) {
+	Buffer b;
+	serialize(&b, "concat");
+	serialize(&b, s1);
+	serialize(&b, s2);
+	*GRADING << "concat(string s1, string s2) invoked." << endl;
+	RPCPROXYSOCKET->write(b.buf, b.length);
+	b.reset();
+	string result = deserializeString(RPCPROXYSOCKET);
+	return result;
+}
+
+void printStringArray(string arr[3]) {
+	Buffer b;
+	serialize(&b, "printStringArray");
+	serialize__string_3_(&b, arr);
+	*GRADING << "printStringArray(string arr[3]) invoked." << endl;
+	RPCPROXYSOCKET->write(b.buf, b.length);
+	b.reset();
+	string result = deserializeString(RPCPROXYSOCKET);
+  *GRADING << "Result from printStringArray(string arr[3])" << result << endl;
+	if (result.compare("DONE") != 0) {
+		throw C150Exception("printStringArray() received invalid response from the server");
+	}
+
 }

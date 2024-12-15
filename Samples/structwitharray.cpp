@@ -1,12 +1,12 @@
 // --------------------------------------------------------------
 //
-//                        strings.cpp
+//                        structwitharray.cpp
 //
 //        Author: Serena Gibbons 
 //   
 //
 //        Trivial implementations of the routines declared
-//        in strings.idl. These are for testing: they
+//        in structwitharray.idl. These are for testing: they
 //        just print messages.
 //
 //     
@@ -17,20 +17,16 @@
 // CODE HERE ACTUALLY MATCHES THE REMOTED INTERFACE
 
 #include <cstdio>
-#include <iostream>
 #include <string>
 using namespace std;
 
-#include "strings.idl"
+#include "structwitharray.idl"
 
-string concat(string s1, string s2) {
-    printf("concat(s1, s2) invoked\n");
-    return s1 + s2;
-}
-
-void printStringArray(string arr[3]) {
-    printf("printStringArray() invoked\n");
-    for (int i = 0; i < 3; i++) {
-        std::cout << arr[i] << std::endl;    
+int getSumOfm1(s s1) {
+    printf("getSumOfm1() invoked\n");
+    int sum = 0;
+    for (int i = 0; i < 4; i++) {
+        sum += s1.m1[i];
     }
+    return sum;
 }

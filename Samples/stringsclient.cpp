@@ -96,12 +96,18 @@ main(int argc, char *argv[]) {
        rpcproxyinitialize(argv[serverArg]);
 
        // 
-       // Call (possibly remote) concat
+       // Call concat
        //
        printf("Calling concat(\"Hello \", \"World\")\n");
        result = concat("Hello ", "World");                          
        printf("Returned from concat(\"Hello \", \"World\"). Result=%s\n", result.c_str());
-
+      
+       // Call printStringArray
+       string arr[3] = {"Hello ", "World", "!"};
+       printf("Calling printStringArray(arr)\n");
+       printStringArray(arr);                          
+       printf("Returned from printStringArray(arr)");
+      
      }
 
      //
