@@ -86,11 +86,27 @@ def generate_remote_function(function_name, args, return_type):
     # Build argument string and serialization function calls
     arg_string_list = []
     serialize_calls = []
+    
     for arg in args:
-        arg_declaration, serializer_call = parse_argument(arg)
+        arg_type = arg["type"]
+        arg_name = arg["name"]
+
+        if '[' in arg_type:
+            # Handle array types
+            inner_type, size_brackets = parse_array(arg_type)
+            arg_declaration = f"{inner_type} {arg_name}{size_brackets}"
+            # Normalize the argument type for serialization function naming
+            normalized_type = arg_type.replace('][', '_').replace('[', '_').replace(']', '_')
+            serializer_call = f"serialize{normalized_type}(&b, {arg_name});"
+        else:
+            # Handle non-array types
+            arg_declaration = f"{arg_type} {arg_name}"
+            serializer_call = f"serialize(&b, {arg_name});"
+            
+        #arg_declaration, serializer_call = parse_argument(arg)
         arg_string_list.append(arg_declaration)
         serialize_calls.append(serializer_call)
-    
+
     arg_string = ", ".join(arg_string_list)
     serialize_args = "\n\t".join(serialize_calls)
 
@@ -120,26 +136,6 @@ def generate_remote_function(function_name, args, return_type):
                        f"{body}}}\n")
 
     return remote_function
-
-def parse_argument(arg):
-        """
-        Helper function to parse an argument and generate the arg string and serializer call.
-        """
-        arg_type = arg["type"]
-        arg_name = arg["name"]
-        
-        if '[' in arg_type:
-            arg_type_clean = arg_type[2:]
-            arg_inner_type = arg_type_clean.split('[', 1)[0]
-            arg_size_bracket = '[' + arg_type_clean.split('[', 1)[1]
-            arg_declaration = f"{arg_inner_type} {arg_name}{arg_size_bracket}"
-        else:
-            arg_declaration = f"{arg_type} {arg_name}"
-        
-        # Prepare serializer call
-        serializer_call = f"serialize(&b, {arg_name});"
-        
-        return arg_declaration, serializer_call
 
 def generate_stub(decls):
     """
@@ -172,15 +168,13 @@ def generate_stub(decls):
                 arg_deserializers += (
                     f"\t\t\t{arg_type} {arg['name']} = deserialize{arg_type.capitalize()}(RPCSTUBSOCKET);\n"
                 )
-            elif '[' in arg_type:
+            elif '[' in arg_type: # Array
                 arg_inner_type, arg_size_bracket = parse_array(arg_type)
-                # arg_deserializers += ("\t\t\t" + arg_inner_type + " " + arg["name"] + arg_size_bracket + ";\n\t\t\t" + arg["type"].replace('][', '_').replace(']', '_').replace('[', '_') + "_deserializer(" + arg["name"] + ");\n")
                 arg_deserializers += (
                     f"\t\t\t{arg_inner_type} {arg['name']}{arg_size_bracket};\n"
                     f"\t\t\tdeserialize{arg['type'].replace('][', '_').replace(']', '_').replace('[', '_')}({arg['name']});\n"
                 )
-            else:
-                # arg_deserializers += ("\t\t\t" + arg["type"] + " " + arg["name"] + ";\n\t\t\t" + arg["type"].replace('][', '_').replace(']', '_').replace('[', '_') + "_deserializer(&(" + arg["name"] + "));\n")
+            else: # Struct
                 arg_deserializers += (
                     f"\t\t\t{arg['type']} {arg['name']};\n"
                     f"\t\t\tdeserialize{arg['type'].replace('][', '_').replace(']', '_').replace('[', '_')}(&({arg['name']}));\n"
@@ -215,7 +209,7 @@ def parse_array(arg_type):
     """
     Parses array type arguments to extract inner type and size.
     """
-    arg_type_clean = arg_type[2:]
+    arg_type_clean = arg_type.lstrip('_')
     arg_inner_type = arg_type_clean.split('[', 1)[0]
     arg_size_bracket = '[' + arg_type_clean.split('[', 1)[1]
     return arg_inner_type, arg_size_bracket
@@ -308,7 +302,7 @@ def get_type_set(decls):
 
 def generate_serializers_and_deserializers(type_set, struct_info, file_type):
     """
-    Genereate serializer and deserializer functions and forward declarations.
+    Generate serializer and deserializer functions and forward declarations.
     """
     serializers = ""
     serializer_contracts = ""
@@ -352,6 +346,9 @@ def generate_struct_serializer(type_of_type, struct_info):
     return serializer, serializer_contract
 
 def generate_struct_deserializer(type_of_type, struct_info, file_type):
+    """
+    Generate function to deserialize a struct.
+    """
     var = f"{type_of_type[0]}1"
     deserializer_body = ""
     for struct in struct_info:
@@ -371,45 +368,52 @@ def generate_struct_deserializer(type_of_type, struct_info, file_type):
     
     return deserializer, deserializer_contract
 
-def generate_array_serializer(type_of_type):
-    # Extract array size part from the type string
-    arr_sizes_string = '[' + type_of_type.split('[', 1)[1]
-    
-    # Clean up the type of type to extract base type and array sizes
-    cleaned_type = type_of_type.replace('][', '_').replace('[', '_').replace(']', '_')
-    arr_type = [s for s in cleaned_type.split('_') if s.isalpha()][0]
-    arr_sizes = [int(s) for s in cleaned_type.split('_') if s.isdigit()]
 
-    # Initialize serializer body and variables
-    idx = 0
-    indent = ""
+def generate_array_serializer(array_type):
+    """
+    Generate function to serialize an array.
+    """
+    # Extract size dimensions and type information
+    array_sizes_string = '[' + array_type.split('[', 1)[1]  # Extract dimensions in [10][5] format
+    normalized_type = array_type.replace('][', '_').replace('[', '_').replace(']', '_')
+    base_type = next(s for s in normalized_type.split('_') if s.isalpha())  # Extract the base type (e.g., int)
+    array_sizes = [int(s) for s in normalized_type.split('_') if s.isdigit()]  # Extract dimensions as integers
+
+    # Generate the serializer body
     serializer_body = ""
-    var_list = []
+    nested_loops_vars = []
+    tab = ""
+    
+    for idx, size in enumerate(array_sizes):
+        loop_var = f"i{idx}"  # Variable for the loop
+        nested_loops_vars.append(loop_var)
+        serializer_body += f"{tab}\tfor (int {loop_var} = 0; {loop_var} < {size}; {loop_var}++) {{\n"
+        tab += "\t"  # Increase indentation for nested loops
 
-    # Generate for loops to handle array serialization
-    for size in arr_sizes:
-        var = f"i{idx}"
-        var_list.append(var)
-        serializer_body += f"{indent}\tfor (int {var} = 0; {var} < {size}; {var}++) {{\n"
-        idx += 1
-        indent += "\t"
+    # Construct the array variable indexing (e.g., arr[i0][i1])
+    array_indexing = ''.join(f"[{var}]" for var in nested_loops_vars)
+    serializer_body += f"{tab}\tserialize(b, arr{array_indexing});\n"
 
-    # Add the serialization function call with array indexing
-    arr_vars_string = ''.join([f"[{var}]" for var in var_list])
-    serializer_body += f"{indent}\tserialize(b, arr{arr_vars_string});\n"
+    # Close the nested loops
+    for _ in array_sizes:
+        serializer_body += f"{tab}}}\n"
+        tab = tab[:-1]  # Reduce indentation
 
-    # Close the for loops
-    for _ in arr_sizes:
-        serializer_body += f"{indent}}}\n"
-        indent = indent[:-1]
+    # Generate the full serializer function and its declaration
+    serializer_function = (
+        f"void serialize{normalized_type}(Buffer *b, {base_type} arr{array_sizes_string}) {{\n"
+        f"{serializer_body}}}\n"
+    )
+    serializer_declaration = (
+        f"void serialize{normalized_type}(Buffer *b, {base_type} arr{array_sizes_string});\n"
+    )
 
-    # Generate the full function and contract
-    serializer = f"void serialize(Buffer *b, {arr_type} arr{arr_sizes_string}) {{\n{serializer_body}}}\n"
-    serializer_contract = f"void serialize(Buffer *b, {arr_type} arr{arr_sizes_string});\n"
-
-    return serializer, serializer_contract
+    return serializer_function, serializer_declaration
 
 def generate_array_deserializer(type_of_type, file_type):
+    """
+    Generate function to deserialize an array.
+    """
     # Extract array size and clean type representation
     arr_sizes_string = f"[{type_of_type.split('[', 1)[1]}"
     type_of_type = type_of_type.replace('][', '_').replace('[', '_').replace(']', '_')
@@ -434,7 +438,7 @@ def generate_array_deserializer(type_of_type, file_type):
     # Generate the deserialization for the array elements
     arr_vars_string = ''.join([f"[{var}]" for var in vars_list])
     if arr_type in {"string", "float", "int"}:
-        deserializer_body += f"{tab}\tarr{arr_vars_string} = deserialize{arr_type}(RPC{file_type.upper()}SOCKET);\n"
+        deserializer_body += f"{tab}\tarr{arr_vars_string} = deserialize{arr_type.capitalize()}(RPC{file_type.upper()}SOCKET);\n"
     else:  # Struct type
         deserializer_body += f"{tab}\tdeserialize{arr_type}(&(arr{arr_vars_string}));\n"
 
