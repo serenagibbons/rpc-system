@@ -61,6 +61,7 @@ void deserializeRectangle(rectangle *r1) {
 }
 
 void __findPerson(ThreePeople tp) {
+	*GRADING << "invoking findPerson()" << endl;
 	Person res = findPerson(tp);
 	Buffer b;
 	serialize(&b, res);
@@ -68,6 +69,7 @@ void __findPerson(ThreePeople tp) {
 }
 
 void __area(rectangle r) {
+	*GRADING << "invoking area()" << endl;
 	int res = area(r);
 	Buffer b;
 	serialize(&b, res);

@@ -65,6 +65,7 @@ Person findPerson(ThreePeople tp) {
 	Buffer b;
 	serialize(&b, "findPerson");
 	serialize(&b, tp);
+	*GRADING << "findPerson invoked" << endl;
 	RPCPROXYSOCKET->write(b.buf, b.length);
 	Person res;
 	deserializePerson(&res);
@@ -75,6 +76,7 @@ int area(rectangle r) {
 	Buffer b;
 	serialize(&b, "area");
 	serialize(&b, r);
+	*GRADING << "area invoked" << endl;
 	RPCPROXYSOCKET->write(b.buf, b.length);
 	return deserializeInt(RPCPROXYSOCKET);
 }

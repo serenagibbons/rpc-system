@@ -13,13 +13,12 @@ import subprocess
 
 IDL_TO_JSON_EXECUTABLE = "./idl_to_json"
 
-TYPE_OF_TYPES = ["builtin", "struct", "array"]
-BUILTIN_TYPES = ["void", "int", "float", "string"]
+BUILTIN_TYPES = ["int", "float", "string"]
 
 def idl_to_json(filename):
     """
     Create the JSON representation of the IDL file using idl_to_json.cpp and
-    return the parsed ddeclarations in a Python dictionary 
+    return the parsed declarations in a Python dictionary.
     """
     # Make sure IDL file exists and is readable
     assert os.path.isfile(filename), f"Path {filename} does not designate a file"
@@ -34,9 +33,10 @@ def idl_to_json(filename):
     
     return decls
 
+
 def generate_headers(idl_filename, file_type):
     """
-    Generate the list of header files and namespaces to include
+    Generate the list of header files and namespaces to include.
     """
     header_files = (
         "#include <string>\n"
@@ -55,11 +55,12 @@ def generate_headers(idl_filename, file_type):
    
     return header_files
 
+
 def generate_proxy(decls):
     """
     Generate the proxy code
     """
-    remote_functions = ""
+    proxy_code = ""
     type_set, struct_info = get_type_set(decls)
     print("type_set:")
     print(type_set)
@@ -67,17 +68,21 @@ def generate_proxy(decls):
     print(struct_info)
     functions = decls["functions"]
 
+    # Generate serializer/deserializer functions
     serializers, serializer_contract, deserializers, deserializer_contract = generate_serializers_and_deserializers(
         type_set, struct_info, "proxy")
     
-    remote_functions += (serializer_contract + deserializer_contract + serializers + deserializers)
+    # Add the serializer/deserializer functions to the proxy code
+    proxy_code += (serializer_contract + deserializer_contract + serializers + deserializers)
 
+    # Genereate the remote functions and add them to the proxy code
     for name, sig in functions.items():
         args = sig["arguments"]
         return_type = sig["return_type"]
-        remote_functions += generate_remote_function(name, args, return_type)
+        proxy_code += generate_remote_function(name, args, return_type)
 
-    return remote_functions
+    return proxy_code
+
 
 def generate_remote_function(function_name, args, return_type):
     """
@@ -99,9 +104,13 @@ def generate_remote_function(function_name, args, return_type):
             normalized_type = arg_type.replace('][', '_').replace('[', '_').replace(']', '_')
             serializer_call = f"serialize{normalized_type}(&b, {arg_name});"
         else:
-            # Handle non-array types
             arg_declaration = f"{arg_type} {arg_name}"
-            serializer_call = f"serialize(&b, {arg_name});"
+            if arg_type in BUILTIN_TYPES:
+                # Handle non-array types
+                serializer_call = f"serialize(&b, {arg_name});"
+            else: 
+                # Handle structs
+                serializer_call = f"serialize{arg_type}(&b, {arg_name});"
             
         #arg_declaration, serializer_call = parse_argument(arg)
         arg_string_list.append(arg_declaration)
@@ -111,7 +120,7 @@ def generate_remote_function(function_name, args, return_type):
     serialize_args = "\n\t".join(serialize_calls)
 
     # Determine function ending based on return type
-    if return_type in {"string", "int", "float"}:
+    if return_type in BUILTIN_TYPES:
         end = (f"\t{return_type} result = deserialize{return_type.capitalize()}(RPCPROXYSOCKET);\n"
                "\treturn result;\n")
     elif return_type == "void":
@@ -127,6 +136,7 @@ def generate_remote_function(function_name, args, return_type):
     body = (f"\tBuffer b;\n"
               f"\tserialize(&b, \"{function_name}\");\n"
               f"\t{serialize_args}\n"
+              f"\t*GRADING << \"{function_name}({arg_string}) invoked.\" << endl;\n"
               f"\tRPCPROXYSOCKET->write(b.buf, b.length);\n"
               f"\tb.reset();\n"
               f"{end}")
@@ -137,6 +147,7 @@ def generate_remote_function(function_name, args, return_type):
 
     return remote_function
 
+
 def generate_stub(decls):
     """
     Generates stub code for the given functions.
@@ -146,9 +157,11 @@ def generate_stub(decls):
     functions = decls["functions"]
     type_set, struct_info = get_type_set(decls)
 
+    # Generate serializer/deserializer functions
     serializers, serializer_contract, deserializers, deserializer_contract = generate_serializers_and_deserializers(
         type_set, struct_info, "stub")
     
+    # Add the serializer/deserializer functions to the stub code
     stub_code += (serializer_contract + deserializer_contract + serializers + deserializers)
 
     for name, sig in functions.items():
@@ -164,7 +177,7 @@ def generate_stub(decls):
 
         for arg in args:
             arg_type = arg["type"]
-            if arg_type in {"string", "int", "float"}:
+            if arg_type in BUILTIN_TYPES:
                 arg_deserializers += (
                     f"\t\t\t{arg_type} {arg['name']} = deserialize{arg_type.capitalize()}(RPCSTUBSOCKET);\n"
                 )
@@ -205,6 +218,7 @@ def generate_stub(decls):
 
     return stub_code
 
+
 def parse_array(arg_type):
     """
     Parses array type arguments to extract inner type and size.
@@ -213,6 +227,7 @@ def parse_array(arg_type):
     arg_inner_type = arg_type_clean.split('[', 1)[0]
     arg_size_bracket = '[' + arg_type_clean.split('[', 1)[1]
     return arg_inner_type, arg_size_bracket
+
 
 def generate_local_functions(function_name, args, return_type):
     """
@@ -249,11 +264,14 @@ def generate_local_functions(function_name, args, return_type):
     # Combine into the local function definition
     local_function = (
         f"void __{function_name}({arg_string}) {{\n"
+        f"\t*GRADING << \"Invoking {function_name}({arg_string}).\" << endl;\n"
         f"{function_call}"
+        f"\t*GRADING << \"Returned from {function_name}({arg_string}). Responding to client.\" << endl;\n"
         f"{body}}}\n"
     )
 
     return local_function
+
 
 def get_type_set(decls):
     """
@@ -310,25 +328,23 @@ def generate_serializers_and_deserializers(type_set, struct_info, file_type):
     deserializer_contracts = ""
 
     for type_of_type in type_set:
-        if type_of_type not in BUILTIN_TYPES:
+        if type_of_type not in BUILTIN_TYPES and type_of_type != "void":
             # Arrays
             if type_of_type.startswith("__"):
                 serializer, serializer_contract = generate_array_serializer(type_of_type)
-                serializers += serializer
-                serializer_contracts += serializer_contract
                 deserializer, deserializer_contract = generate_array_deserializer(type_of_type, file_type)
-                deserializers += deserializer
-                deserializer_contracts += deserializer_contract
             # Structs
             else:
                 serializer, serializer_contract = generate_struct_serializer(type_of_type, struct_info)
-                serializers += serializer
-                serializer_contracts += serializer_contract
                 deserializer, deserializer_contract = generate_struct_deserializer(type_of_type, struct_info, file_type)
-                deserializers += deserializer
-                deserializer_contracts += deserializer_contract
+
+            serializers += serializer
+            serializer_contracts += serializer_contract
+            deserializers += deserializer
+            deserializer_contracts += deserializer_contract
     
     return serializers, serializer_contracts, deserializers, deserializer_contracts
+
 
 def generate_struct_serializer(type_of_type, struct_info):
     """
@@ -338,12 +354,17 @@ def generate_struct_serializer(type_of_type, struct_info):
     for struct in struct_info:
         if struct["struct_name"] == type_of_type:
             for mem_name, mem_type in zip(struct["mem_name"], struct["mem_type"]):
-                serializer_body += f"\tserialize(b, {type_of_type[0]}1.{mem_name});\n"
+                if mem_type in BUILTIN_TYPES:
+                    serializer_body += f"\tserialize(b, {type_of_type[0]}1.{mem_name});\n"
+                else:
+                    formatted_mem_type = mem_type.replace('][', '_').replace('[', '_').replace(']', '_')
+                    serializer_body += f"\tserialize{formatted_mem_type}(b, {type_of_type[0]}1.{mem_name});\n"
 
-    serializer = f"void serialize(Buffer *b, {type_of_type} {type_of_type[0]}1) {{\n{serializer_body}}}\n"
-    serializer_contract = f"void serialize(Buffer *b, {type_of_type} {type_of_type[0]}1);\n"
+    serializer = f"void serialize{type_of_type}(Buffer *b, {type_of_type} {type_of_type[0]}1) {{\n{serializer_body}}}\n"
+    serializer_contract = f"void serialize{type_of_type}(Buffer *b, {type_of_type} {type_of_type[0]}1);\n"
     
     return serializer, serializer_contract
+
 
 def generate_struct_deserializer(type_of_type, struct_info, file_type):
     """
@@ -354,7 +375,7 @@ def generate_struct_deserializer(type_of_type, struct_info, file_type):
     for struct in struct_info:
         if struct["struct_name"] == type_of_type:
             for mem_name, mem_type in zip(struct["mem_name"], struct["mem_type"]):
-                if mem_type in {"string", "int", "float"}:
+                if mem_type in BUILTIN_TYPES:
                     deserializer_body += f"\t{var}->{mem_name} = deserialize{mem_type.capitalize()}(RPC{file_type.upper()}SOCKET);\n"
                 else:
                     formatted_mem_type = mem_type.replace('][', '_').replace('[', '_').replace(']', '_')
@@ -410,6 +431,7 @@ def generate_array_serializer(array_type):
 
     return serializer_function, serializer_declaration
 
+
 def generate_array_deserializer(type_of_type, file_type):
     """
     Generate function to deserialize an array.
@@ -427,17 +449,17 @@ def generate_array_deserializer(type_of_type, file_type):
     deserializer_body = ""
     vars_list = []
 
-    # Generate deserializer loops for array sizes
+    # Generate deserializer loops for arrays
     for size in arr_sizes:
-        var = f"i{idx}"
-        vars_list.append(var)
-        deserializer_body += f"{tab}\tfor (int {var} = 0; {var} < {size}; {var}++) {{\n"
+        loop_counter = f"idx{idx}"
+        vars_list.append(loop_counter)
+        deserializer_body += f"{tab}\tfor (int {loop_counter} = 0; {loop_counter} < {size}; {loop_counter}++) {{\n"
         idx += 1
         tab += "\t"
 
     # Generate the deserialization for the array elements
     arr_vars_string = ''.join([f"[{var}]" for var in vars_list])
-    if arr_type in {"string", "float", "int"}:
+    if arr_type in BUILTIN_TYPES:
         deserializer_body += f"{tab}\tarr{arr_vars_string} = deserialize{arr_type.capitalize()}(RPC{file_type.upper()}SOCKET);\n"
     else:  # Struct type
         deserializer_body += f"{tab}\tdeserialize{arr_type}(&(arr{arr_vars_string}));\n"
@@ -452,6 +474,7 @@ def generate_array_deserializer(type_of_type, file_type):
     deserializer_contract = f"void deserialize{type_of_type}({arr_type} arr{arr_sizes_string});\n"
 
     return deserializer, deserializer_contract
+
 
 def main():
     """
@@ -469,8 +492,7 @@ def main():
 
     # Parse declarations into a Python dictionary
     decls = idl_to_json(idl_filepath)
-    json_string = json.dumps(decls, indent=4)
-    print(json_string)
+    print(json.dumps(decls, indent=4))
 
     # Set proxy and stub file names
     proxy_filename = re.sub(r'\.idl', '.proxy.cpp', idl_filename)
@@ -484,9 +506,6 @@ def main():
     proxy_code = generate_proxy(decls)
     stub_code = generate_stub(decls)
 
-    print(proxy_filename + ":\n" + proxy_code)
-    print(stub_filename + ":\n" +stub_code)
-
     # Write the proxy code to the proxy file
     with open(proxy_filename, "w") as f:
         f.writelines([proxy_headers, proxy_code])
@@ -494,6 +513,7 @@ def main():
     # Write the stub code to the stub file
     with open(stub_filename, "w") as f:
         f.writelines([stub_headers, stub_code])
+
 
 if __name__=="__main__":
 	main()

@@ -1,6 +1,6 @@
 // --------------------------------------------------------------
 //
-//                        structsclient.cpp
+//                        structwitharrayclient.cpp
 //
 //        Author: Serena Gibbons  
 //   
@@ -13,7 +13,7 @@
 //
 //        COMMAND LINE
 //
-//              structsclient <servername> 
+//              structwitharrayclient <servername> 
 //
 //     
 // --------------------------------------------------------------
@@ -35,7 +35,7 @@
 #include <string>
 
 using namespace std;          // for C++ std library
-#include "structs.idl"
+#include "structwitharray.idl"
 
 using namespace C150NETWORK;  // for all the comp150 utilities 
 
@@ -65,73 +65,57 @@ const int serverArg = 1;     // server name is 1st arg
 int 
 main(int argc, char *argv[]) {
 
-     //
      //  Set up debug message logging
-     //
      setUpDebugLogging("structsclientdebug.txt",argc, argv);
 
-     //
      // Make sure command line looks right
-     //
      if (argc != 2) {
        fprintf(stderr,"Correct syntxt is: %s <servername> \n", argv[0]);
        exit(1);
      }
 
-     //
-     //  DO THIS FIRST OR YOUR ASSIGNMENT WON'T BE GRADED!
-     //
-     
+     //  DO THIS FIRST OR YOUR ASSIGNMENT WON'T BE GRADED
      GRADEME(argc, argv);
 
-     //
-     //     Call the functions and see if they return
-     //
+     // Call the functions and see if they return
      try {
-        //
+        
         // Set up the socket so the proxies can find it
-        //
         rpcproxyinitialize(argv[serverArg]);
 
-        Person personResult;
+        s s1 = {
+            {1, 2, 3, 4}, // Directly initialize m1
+            {
+                {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, // m2[0]
+                {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, // m2[1]
+                {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, // m2[2]
+                {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}  // m2[3]
+            },
+            {
+                {
+                    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99}
+                },
+                {
+                    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99}
+                },
+                {
+                    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99}
+                },
+                {
+                    {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99}
+                }
+            }
+        };
 
-        // Creating some sample people
-        Person person1 = {"John", "Doe", 25};
-        Person person2 = {"Jane", "Smith", 30};
-        Person person3 = {"Emily", "Jones", 22};
-
-        // Grouping them into ThreePeople
-        ThreePeople tp = {person1, person2, person3};
-        // 
         // Call (possibly remote) concat
-        //
-        printf("Calling findPerson(tp)\n");
-        *GRADING << "Calling findPerson(tp)." << endl;
-        personResult = findPerson(tp);                  
-        printf("Returned from findPerson(tp). Result: %s %s, Age: %d\n", 
-                personResult.firstname.c_str(),  // Convert string to C-style string
-                personResult.lastname.c_str(),   // Convert string to C-style string
-                personResult.age);               // Print age directly
-        *GRADING << "Returned from findPerson(tp)." << endl;
-
-        int areaResult; 
-
-        rectangle r = {5, 10};
-        
-        // 
-        // Call (possibly remote) area
-        //
-        printf("Calling area(r)\n");
-        *GRADING << "Calling area(r). r.x=" << r.x << " r.y=" << r.y << endl;
-        areaResult = area(r);                          
-        printf("Returned from area(r). Result=%d\n", areaResult);
-        *GRADING << "Returned from area(r). Result=" << areaResult << endl;
-
+        printf("Calling getSumOfm1(s1)\n");
+        *GRADING << "Calling getSumOfm1(s1)." << endl;
+        int result = getSumOfm1(s1); 
+        printf("Returned from getSumOfm1(s1). Result: %d\n", result);
+        *GRADING << "Returned from getSumOfm1(s1)." << endl;
      }
 
-     //
      //  Handle networking errors -- for now, just print message and give up!
-     //
      catch (C150Exception& e) {
        // Write to debug log
        c150debug->printf(C150ALWAYSLOG,"Caught C150Exception: %s\n",
