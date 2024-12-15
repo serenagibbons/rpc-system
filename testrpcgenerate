@@ -1,0 +1,35 @@
+import os
+import subprocess
+
+# Define the directory to search and the script to execute
+directory = '.'
+python_script = 'rpcgenerate'  # Replace with your script's filename
+
+# Ensure the directory exists
+if not os.path.isdir(directory):
+    print(f"The directory '{directory}' does not exist.")
+    exit(1)
+
+# List all files in the directory
+for filename in os.listdir(directory):
+    print(filename)
+    # Check if the file has the .idl extension
+    if filename.endswith('.idl'):
+        file_path = os.path.join(directory, filename)
+        print(f"Processing file: {file_path}")
+        
+        # Run the Python script on the .idl file
+        try:
+            # Using subprocess to call the script with the .idl file as an argument
+            result = subprocess.run(
+                ['python', python_script, file_path],  # Command to run
+                check=True,  # Raise an error if the script fails
+                stdout=subprocess.PIPE,  # Capture output
+                stderr=subprocess.PIPE  # Capture errors
+            )
+            # Print the output of the script
+            print("Output:\n", result.stdout.decode())
+        except subprocess.CalledProcessError as e:
+            print(f"Error while processing {file_path}: {e.stderr.decode()}")
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")

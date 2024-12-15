@@ -1,0 +1,7 @@
+struct s {
+  int m1[4];
+  int m2[4][10];
+  int m3[4][10][100];
+};
+
+int getSumOfm1(s s1);

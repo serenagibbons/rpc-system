@@ -42,7 +42,7 @@ CPPFLAGS = -g -Wall -Werror -I$(C150IDSRPC) -I$(C150LIB)
 
 
 LDFLAGS = 
-INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h rpcproxyhelper.h rpcstubhelper.h
+INCLUDES = $(C150LIB)c150streamsocket.h $(C150LIB)c150network.h $(C150LIB)c150exceptions.h $(C150LIB)c150debug.h $(C150LIB)c150utility.h $(C150LIB)c150grading.h $(C150IDSRPC)IDLToken.h $(C150IDSRPC)tokenizeddeclarations.h  $(C150IDSRPC)tokenizeddeclaration.h $(C150IDSRPC)declarations.h $(C150IDSRPC)declaration.h $(C150IDSRPC)functiondeclaration.h $(C150IDSRPC)typedeclaration.h $(C150IDSRPC)arg_or_member_declaration.h rpcproxyhelper.h rpcstubhelper.h ./*.h ./*.idl
 
 all: idldeclarationtst idl_to_json 
 
@@ -55,9 +55,9 @@ all: idldeclarationtst idl_to_json
 #
 ########################################################################
 
-# Compile the rpcgenerate program
-rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
-	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
+# # Compile the rpcgenerate program
+# rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
+# 	$(CPP) -o rpcgenerate rpcgenerate.o $(C150AR) $(C150IDSRPCAR)
 
 ########################################################################
 #
@@ -80,12 +80,12 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 ########################################################################
 
 # Compile / link any client executable: 
-# %client: %.o %.proxy.o rpcserver.o rpcproxyhelper.o %client.o %.proxy.o
-# 	$(CPP) -o $@ $@.o rpcproxyhelper.o $*.proxy.o  $(C150AR) $(C150IDSRPCAR) 
+%client: %.o %.proxy.o rpcserver.o rpcproxyhelper.o %client.o %.proxy.o
+	$(CPP) -o $@ $@.o rpcproxyhelper.o $*.proxy.o  $(C150AR) $(C150IDSRPCAR) 
 
-# # Compile / link any server executable:
-# %server: %.o %.stub.o rpcserver.o rpcstubhelper.o %.stub.o
-# 	$(CPP) -o $@ rpcserver.o $*.stub.o $*.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
+# Compile / link any server executable:
+%server: %.o %.stub.o rpcserver.o rpcstubhelper.o %.stub.o
+	$(CPP) -o $@ rpcserver.o $*.stub.o $*.o rpcstubhelper.o $(C150AR) $(C150IDSRPCAR) 
 
 
 
@@ -108,8 +108,8 @@ rpcgenerate: Makefile rpcgenerate.o $(C150AR) $(C150IDSRPCAR) $(INCLUDES)
 #
 ########################################################################
 
-# %.proxy.cpp %.stub.cpp:%.idl $(RPCGEN)
-#	$(RPCGEN) $<
+%.proxy.cpp %.stub.cpp:%.idl $(RPCGEN)
+	$(RPCGEN) $<
 
 ########################################################################
 #
