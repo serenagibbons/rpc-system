@@ -17,3 +17,14 @@ struct rectangle {int x; int y;};
 
 int area(rectangle r);
 
+void searchRectangles(rectangle rects[10]);
+
+struct MT {};
+
+struct Point {
+  int x;
+  int y;
+};
+
+Point calculateDistance(Point p1, Point p2);
+

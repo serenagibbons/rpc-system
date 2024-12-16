@@ -39,6 +39,11 @@ void serialize(Buffer *b, Person P1) {
 	serialize(b, P1.age);
 }
 
+void serialize(Buffer *b, Point P1) {
+	serialize(b, P1.x);
+	serialize(b, P1.y);
+}
+
 void serialize(Buffer *b, rectangle r1) {
 	serialize(b, r1.x);
 	serialize(b, r1.y);
@@ -61,6 +66,11 @@ void deserializeRectangle(rectangle *r1) {
 	r1->y = deserializeInt(RPCPROXYSOCKET);
 }
 
+void deserializePoint(Point *P1) {
+	r1->x = deserializeInt(RPCPROXYSOCKET);
+	r1->y = deserializeInt(RPCPROXYSOCKET);
+}
+
 Person findPerson(ThreePeople tp) {
 	Buffer b;
 	serialize(&b, "findPerson");
@@ -79,4 +89,16 @@ int area(rectangle r) {
 	*GRADING << "area invoked" << endl;
 	RPCPROXYSOCKET->write(b.buf, b.length);
 	return deserializeInt(RPCPROXYSOCKET);
+}
+
+Point calculateDistance(Point point1, Point point2) {
+	Buffer b;
+	serialize(&b, "calculateDistance");
+	serialize(&b, point1);
+	serialize(&b, point2);
+	*GRADING << "calculateDistance invoked" << endl;
+	RPCPROXYSOCKET->write(b.buf, b.length);
+	Point res;
+	deserializePerson(&res);
+	return res;
 }

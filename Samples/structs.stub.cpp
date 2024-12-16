@@ -76,6 +76,14 @@ void __area(rectangle r) {
 	RPCSTUBSOCKET->write(b.buf, b.length);
 }
 
+void __calculateDistance(Point p1, Point p2) {
+	*GRADING << "invoking area()" << endl;
+	int res = calculateDistance(a, b);
+	Buffer b;
+	serialize(&b, res);
+	RPCSTUBSOCKET->write(b.buf, b.length);
+}
+
 void __badFunction(const char *functionName) {
 	char doneBuffer[5] = "BAD";
 	RPCSTUBSOCKET->write(doneBuffer, strlen(doneBuffer)+1);

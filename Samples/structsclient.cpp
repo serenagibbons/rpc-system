@@ -127,6 +127,35 @@ main(int argc, char *argv[]) {
         printf("Returned from area(r). Result=%d\n", areaResult);
         *GRADING << "Returned from area(r). Result=" << areaResult << endl;
 
+        Point pointResult;
+        Point p1 = {0,1};
+        Point p2 = {2,4};
+        
+        // Call (possibly remote) area
+        printf("Calling calculateDistance(p1, p2)\n");
+        *GRADING << "Calling calculateDistance(p1, p2)." << endl;
+        pointResult = calculateDistance(p1, p2);                    
+        printf("Returned from calculateDistance(p1, p2). Result=(%d,%d)\n", pointResult.x, pointResult.y);
+        *GRADING << "Returned from calculateDistance(p1, p2)." << endl;
+
+        // Declare an array of 10 rectangles
+        rectangle rect[10];
+
+        // Initialize the first rectangle
+        rect[0] = {5, 10};
+
+        // Optionally initialize other rectangles or leave them uninitialized
+        for (int i = 1; i < 10; ++i) {
+            rect[i] = {0, 0}; // Initialize remaining rectangles to default values
+        }
+
+        // Call (possibly remote) area
+        printf("Calling searchRectangles(rect) \n");
+        *GRADING << "Calling searchRectangles(rect)." << endl;
+        searchRectangles(rect);                    
+        printf("Returned from searchRectangles(rect).");
+        *GRADING << "Returned from searchRectangles(rect)." << endl;
+
      }
 
      //

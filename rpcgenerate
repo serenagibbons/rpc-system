@@ -62,10 +62,6 @@ def generate_proxy(decls):
     """
     proxy_code = ""
     type_set, struct_info = get_type_set(decls)
-    print("type_set:")
-    print(type_set)
-    print("struct_info:")
-    print(struct_info)
     functions = decls["functions"]
 
     # Generate serializer/deserializer functions
@@ -253,10 +249,12 @@ def generate_local_functions(function_name, args, return_type):
     else:
         function_call = f"\t{return_type} result = {function_name}({arg_names});\n"
 
+    serialize_result = "\tserialize(&b, result);\n" if return_type in BUILTIN_TYPES or return_type == "void" else f"\tserialize{return_type}(&b, result);\n"
+    
     # Function body
     body = (
         "\tBuffer b;\n"
-        "\tserialize(&b, result);\n"
+        f"{serialize_result}"
         "\tRPCSTUBSOCKET->write(b.buf, b.length);\n"
         "\tb.reset();\n"
     )
@@ -406,14 +404,17 @@ def generate_array_serializer(array_type):
     tab = ""
     
     for idx, size in enumerate(array_sizes):
-        loop_var = f"i{idx}"  # Variable for the loop
+        loop_var = f"index{idx}"  # Variable for the loop
         nested_loops_vars.append(loop_var)
         serializer_body += f"{tab}\tfor (int {loop_var} = 0; {loop_var} < {size}; {loop_var}++) {{\n"
         tab += "\t"  # Increase indentation for nested loops
 
-    # Construct the array variable indexing (e.g., arr[i0][i1])
+    # Construct the array variable indexing (e.g., arr[index0][index1])
     array_indexing = ''.join(f"[{var}]" for var in nested_loops_vars)
-    serializer_body += f"{tab}\tserialize(b, arr{array_indexing});\n"
+    if base_type in BUILTIN_TYPES:
+        serializer_body += f"{tab}\tserialize(b, arr{array_indexing});\n"
+    else:
+        serializer_body += f"{tab}\tserialize{base_type}(b, arr{array_indexing});\n"
 
     # Close the nested loops
     for _ in array_sizes:
@@ -451,7 +452,7 @@ def generate_array_deserializer(type_of_type, file_type):
 
     # Generate deserializer loops for arrays
     for size in arr_sizes:
-        loop_counter = f"idx{idx}"
+        loop_counter = f"index{idx}"
         vars_list.append(loop_counter)
         deserializer_body += f"{tab}\tfor (int {loop_counter} = 0; {loop_counter} < {size}; {loop_counter}++) {{\n"
         idx += 1
@@ -492,7 +493,6 @@ def main():
 
     # Parse declarations into a Python dictionary
     decls = idl_to_json(idl_filepath)
-    print(json.dumps(decls, indent=4))
 
     # Set proxy and stub file names
     proxy_filename = re.sub(r'\.idl', '.proxy.cpp', idl_filename)
